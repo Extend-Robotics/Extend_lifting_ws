@@ -243,5 +243,9 @@ scripts/lifting_ctrl_interface_node.py
 scripts/lifting_motor_ctrl.py
 scripts/lifting_ctrl_monitor_node.py
 scripts/lifting_ctrl_service_node.py
+scripts/lifting_motor_client_node.py 
+scripts/lifting_motor_interface_client_node.py
+scripts/lifting_ctrl_service_node_850pro.py
+scripts/lifting_motor_ctrl_850pro.py
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
