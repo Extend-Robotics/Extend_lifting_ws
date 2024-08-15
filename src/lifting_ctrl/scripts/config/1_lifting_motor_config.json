@@ -1,6 +1,5 @@
 {
-    "initMode":1,
-    "portName": "/dev/ttyUSB0",
+    "initMode":0,
     "baudRate": 38400 ,
     "dataFormat":"hex",
     "reductionRatio":2000,
