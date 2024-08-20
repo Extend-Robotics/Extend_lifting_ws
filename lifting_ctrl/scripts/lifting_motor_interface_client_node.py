@@ -47,13 +47,13 @@ try:
         if(reach_pos_flag == True):
             random_int1 = random.randint(start1, end1)
             random_int2 = random.randint(start2, end2)
-            time.sleep(1)
+            #time.sleep(1)
             req.mode = 0
             if(req.val < 401): req.val = random_int2
             elif(req.val >400): req.val = random_int1
             reach_pos_flag = False
 
-        time.sleep(0.1)
+        #time.sleep(0.01)
     # 在这里处理服务响应
 except rospy.ServiceException as e:
     # 处理超时或其他错误

@@ -206,7 +206,7 @@ class C_LiftingMotorCtrl_850pro():
                     print("--------", self.__motor_id,"--",l)
                     if(self.__deal_data.sensor_serial.is_serial_port_available(l)):
                         for i in range(10):
-                            time.sleep(0.2)
+                            #time.sleep(0.02)
                             txlist = [self.__motor_id, 0x03, 0x00, 0xE1, 0x00, 0x02]
                             rxdata = self.__deal_data.DealAllData(txlist, 6, True, l, 9)
                             print("----", self.__motor_id,"--",rxdata)
@@ -262,24 +262,24 @@ class C_LiftingMotorCtrl_850pro():
         self.motor_list = [0,1]
         txlist = [self.__motor_id, 0x03, 0x00, 0xE1, 0x00, 0x02]
         tmp = self.__deal_data.DealAllData(txlist, 6, True, self.__port_name)
-        time.sleep(0.01)
+        #time.sleep(0.01)
         if(tmp is not None):
             self.motor_list = self.motor_list + tmp
             txlist = [self.__motor_id, 0x03, 0x00, 0xE3, 0x00, 0x02]
             tmp = self.__deal_data.DealAllData(txlist, 6, True, self.__port_name)
-            time.sleep(0.01)
+            #time.sleep(0.01)
             if(tmp is not None):
                 self.motor_list =  self.motor_list + tmp
                 # 将定位完成位始终赋值为1
                 self.motor_list =  self.motor_list + [0, 1]
                 txlist = [self.__motor_id, 0x03, 0x00, 0xE6, 0x00, 0x02]
                 tmp = self.__deal_data.DealAllData(txlist, 6, True, self.__port_name)
-                time.sleep(0.01)
+                #time.sleep(0.01)
                 if(tmp is not None):
                     self.motor_list =  self.motor_list + tmp
                     txlist = [self.__motor_id, 0x03, 0x00, 0xE8, 0x00, 0x02]
                     tmp = self.__deal_data.DealAllData(txlist, 6, True, self.__port_name)
-                    time.sleep(0.01)
+                    #time.sleep(0.01)
                     if(tmp is not None):
                         self.motor_list =  self.motor_list + tmp
         # self.motor_list = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]

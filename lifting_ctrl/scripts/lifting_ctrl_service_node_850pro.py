@@ -244,9 +244,10 @@ class C_ROS_Server:
                     self.target_height = self.ctrl.SetTargetHeight(req.val)
                     rospy.loginfo("target height: %d", self.target_height)
                     # 电机是否到达了目标位置，误差小于1认为到达了，反馈1为到达，反馈-1为未到达
-                    if(abs(self.target_height - self.back_height) < 2): 
-                        resp = 1
-                    else: resp = -1
+                    # if(abs(self.target_height - self.back_height) < 2): 
+                    #     resp = 1
+                    # else: resp = -1
+                    resp = 1
                 # 急停
                 elif(req.mode == -2 and self.init_state):
                     if isinstance(self.motor_states, C_LiftingMotorCtrl_850pro.motor_msg):
@@ -337,7 +338,7 @@ class C_ROS_Server:
                         resp = -13
                     break
 
-                time.sleep(0.5)
+                #time.sleep(0.01)
         self.last_callLock = self.callLock
         rospy.loginfo("resquest的mode为%s", self.mode)
         rospy.loginfo("resquest的val为%d", req.val)
@@ -375,7 +376,7 @@ class C_ROS_Server:
                 self.mode = 0xF1
                 self.target_height = self.__initPos
                 rospy.loginfo("初始化完成,over")
-                time.sleep(1)
+                #time.sleep(0.01)
             else:
                 if(self.print_flag_init):
                     rospy.logwarn("未完成初始化...")
@@ -456,7 +457,7 @@ class C_ROS_Server:
             self.PublishMotorMsgs()
             # ## 模式控制
             self.ModeCtrl()
-            time.sleep(0.02)
+            #time.sleep(0.02)
     
     def Main(self, state) -> None:
         '''

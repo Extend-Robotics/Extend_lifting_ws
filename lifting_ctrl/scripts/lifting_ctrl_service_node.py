@@ -386,7 +386,7 @@ class C_ROS_Server:
                         resp = -13
                     break
 
-                time.sleep(0.5)
+                #time.sleep(0.5)
         self.last_callLock = self.callLock
         rospy.loginfo("resquest的mode为%s", self.mode)
         rospy.loginfo("resquest的val为%d", req.val)
@@ -424,7 +424,7 @@ class C_ROS_Server:
                 self.mode = 0xF1
                 self.target_height = self.__initPos
                 rospy.loginfo("初始化完成,over")
-                time.sleep(1)
+                #time.sleep(1)
             else:
                 if(self.print_flag_init):
                     rospy.logwarn("未完成初始化...")
@@ -505,7 +505,7 @@ class C_ROS_Server:
             self.PublishMotorMsgs()
             # ## 模式控制
             self.ModeCtrl()
-            time.sleep(0.02)
+            #time.sleep(0.02)
     
     def Main(self, state) -> None:
         '''

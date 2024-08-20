@@ -206,7 +206,7 @@ class C_LiftingMotorCtrl():
                     print("--------", self.__motor_id,"--",l)
                     if(self.__deal_data.sensor_serial.is_serial_port_available(l)):
                         for i in range(10):
-                            time.sleep(0.2)
+                            #time.sleep(0.02)
                             txlist = [self.__motor_id, 0x03, 0x00, 0xE0, 0x00, 0x0A]
                             rxdata = self.__deal_data.DealAllData(txlist, 6, True, l, 25)
                             print("----", self.__motor_id,"--",rxdata)

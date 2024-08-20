@@ -5,7 +5,7 @@
     "reductionRatio":2000,
     "posOffset": 0,
     "responseTimeout":60,
-    "motorSpd":3000,
+    "motorSpd":2000,
     "motorTime":0,
     "callBackMode":0,
     "upLimitVal":600,

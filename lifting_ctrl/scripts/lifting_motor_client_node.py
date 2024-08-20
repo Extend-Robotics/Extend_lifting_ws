@@ -31,13 +31,13 @@ try:
             reach_pos_flag = True
 
         if(reach_pos_flag == True):
-            time.sleep(1)
+            #time.sleep(0.02)
             mode = 0
             if(val == 0): val = 800
             elif(val == 800): val = 0
             reach_pos_flag = False
 
-        time.sleep(0.1)
+        #time.sleep(0.1)
     # 在这里处理服务响应
 except rospy.ServiceException as e:
     # 处理超时或其他错误
