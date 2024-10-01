@@ -8,7 +8,7 @@ import time
 
 from lifting_motor_ctrl_850pro import C_LiftingMotorCtrl_850pro
 
-from bt_task_msgs.srv  import LiftMotorSrv, LiftMotorSrvRequest, LiftMotorSrvResponse 
+from bt_task_msgs.srv  import LiftMotorSrv, LiftMotorSrvRequest, LiftMotorSrvResponse, LiftIntializationInterrupt, LiftIntializationInterruptRequest, LiftIntializationInterruptResponse
 
 from bt_task_msgs.msg import LiftMotorMsg
 
@@ -71,6 +71,8 @@ class C_ROS_Server:
         self.motor_pub = rospy.Publisher('LiftMotorStatePub', LiftMotorMsg, queue_size=1)
         self.init_state_pub = rospy.Publisher('LiftMotorInitState', Bool, queue_size=0)
         self.motor_srv = rospy.Service('LiftingMotorService', LiftMotorSrv, self.SververCallbackBlock)
+        self.init_interrupt_requested = False
+        self.init_interrupt_srv = rospy.Service('LiftingInitializationInterrupt', LiftIntializationInterrupt, self.InterruptServiceCallBack)
         self.first_up_flag = False
         self.first_down_flag = False
         self.previous_dir = 0
@@ -83,6 +85,12 @@ class C_ROS_Server:
         self.callLock = self.last_callLock = True
         self.timeoutFlag:bool = False
         self.print_flag_init = True
+
+    def InterruptServiceCallBack(self,req):
+        self.init_interrupt_requested = True
+        resp = 1
+        rospy.loginfo("Interrupt Service Response %s", resp)
+        return LiftIntializationInterruptResponse(resp)
 
     def add_to_param_list(self, param_name, new_element):
         # 检查参数是否存在
@@ -242,7 +250,13 @@ class C_ROS_Server:
                     if(init_state_lock):
                         self.init_state = False
                         init_state_lock = False
-                    if(self.init_state):
+                        self.init_interrupt_requested = False
+                    if(self.init_interrupt_requested):
+                        resp = 3
+                        init_state_lock = True
+                        self.init_state = True
+                        break
+                    elif(self.init_state):
                         resp = 1
                         self.init_state_msg = 1
                     else: resp = -1
@@ -377,11 +391,15 @@ class C_ROS_Server:
             if(not self.overload_flag):
                 if(self.print_flag_init):
                     rospy.loginfo("开始下限位初始化...")
-            self.init_state = self.ctrl.LiftLimitInit(self.initSpd, self.motor_states)
+            if(not self.init_interrupt_requested):
+                self.init_state = self.ctrl.LiftLimitInit(self.initSpd, self.motor_states)
             # print(self.motor_msgs.overLoad, self.motor_msgs.backCurrent, self.init_state)
             if(self.init_state): 
                 self.mode = 0xF1
                 self.target_height = self.__initPos
+                if(self.init_interrupt_requested):
+                    self.target_height = self.back_height
+                    self.mode = 0xF2
                 rospy.loginfo("初始化完成,over")
                 #time.sleep(0.01)
             else:

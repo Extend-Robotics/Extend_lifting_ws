@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    LiftInterfaceSrv.srv
    LiftMotorSrv.srv
+   LiftIntializationInterrupt.srv
  )
 
 # add_action_files(
