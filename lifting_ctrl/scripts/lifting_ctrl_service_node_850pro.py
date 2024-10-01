@@ -12,6 +12,8 @@ from bt_task_msgs.srv  import LiftMotorSrv, LiftMotorSrvRequest, LiftMotorSrvRes
 
 from bt_task_msgs.msg import LiftMotorMsg
 
+from std_msgs.msg import Bool
+
 class C_ROS_Server:
     def __init__(self,) -> None:
         '''
@@ -65,7 +67,9 @@ class C_ROS_Server:
         if isinstance(self.motor_states, C_LiftingMotorCtrl_850pro.motor_msg):
             self.back_height = self.motor_states.back_lift_height
         self.motor_msgs = LiftMotorMsg()
+        self.init_state_msg = Bool()
         self.motor_pub = rospy.Publisher('LiftMotorStatePub', LiftMotorMsg, queue_size=1)
+        self.init_state_pub = rospy.Publisher('LiftMotorInitState', Bool, queue_size=0)
         self.motor_srv = rospy.Service('LiftingMotorService', LiftMotorSrv, self.SververCallbackBlock)
         self.first_up_flag = False
         self.first_down_flag = False
@@ -186,6 +190,7 @@ class C_ROS_Server:
             # 发布
         try:
             self.motor_pub.publish(self.motor_msgs)
+            self.init_state_pub.publish(self.init_state_msg)
         except Exception as e:
             print("发布失败",e)
             pass
@@ -237,7 +242,9 @@ class C_ROS_Server:
                     if(init_state_lock):
                         self.init_state = False
                         init_state_lock = False
-                    if(self.init_state): resp = 1
+                    if(self.init_state):
+                        resp = 1
+                        self.init_state_msg = 1
                     else: resp = -1
                 # 位置模式
                 elif(req.mode == 0 and self.init_state):
