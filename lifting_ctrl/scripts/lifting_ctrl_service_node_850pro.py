@@ -248,6 +248,7 @@ class C_ROS_Server:
                     #     resp = 1
                     # else: resp = -1
                     resp = 1
+                    break
                 # 急停
                 elif(req.mode == -2 and self.init_state):
                     if isinstance(self.motor_states, C_LiftingMotorCtrl_850pro.motor_msg):
@@ -340,9 +341,6 @@ class C_ROS_Server:
 
                 #time.sleep(0.01)
         self.last_callLock = self.callLock
-        rospy.loginfo("resquest的mode为%s", self.mode)
-        rospy.loginfo("resquest的val为%d", req.val)
-        rospy.loginfo("服务端的应答为%s", resp)
         return LiftMotorSrvResponse(resp)
     
     def ShowLog(self):
