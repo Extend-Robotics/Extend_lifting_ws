@@ -36,7 +36,7 @@ class C_Server_Interface:
                 if(self.motor_sub != None and self.motor_pub!=None):
                     self.motor_pub.unregister()
                     self.motor_sub.unregister()
-                self.motor_sub = rospy.Subscriber(sub_topic_name, LiftMotorMsg, callback=self.SubCallBack,queue_size=3)
+                self.motor_sub = rospy.Subscriber(sub_topic_name, LiftMotorMsg, callback=self.SubCallBack,queue_size=1)
                 response_.message = "Lift interface Start pub"
                 response_.success = True
                 response_.code  = 13005

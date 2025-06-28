@@ -23,7 +23,7 @@ class C_ROS_Sub():
         rospy.init_node('lift_ctrl_monitor_node', anonymous=True)
         # rospy.init_node('PUB', anonymous=True)
         
-        rospy.Subscriber("/LiftMotorStatePub", LiftMotorMsg, self.Callback)
+        rospy.Subscriber("/LiftMotorStatePub", LiftMotorMsg, self.Callback, queue_size=1)
 
         # spin() simply keeps python from exiting until this node is stopped
         rospy.spin()
