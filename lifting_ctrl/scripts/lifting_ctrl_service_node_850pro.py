@@ -13,6 +13,8 @@ from bt_task_msgs.srv  import LiftMotorSrv, LiftMotorSrvRequest, LiftMotorSrvRes
 from bt_task_msgs.msg import LiftMotorMsg
 
 from std_msgs.msg import Bool
+from dual_arm_msgs.msg import Lift_Height
+from sensor_msgs.msg import JointState
 
 class C_ROS_Server:
     def __init__(self,) -> None:
@@ -71,6 +73,12 @@ class C_ROS_Server:
         self.motor_pub = rospy.Publisher('LiftMotorStatePub', LiftMotorMsg, queue_size=1)
         self.init_state_pub = rospy.Publisher('LiftMotorInitState', Bool, queue_size=0)
         self.motor_srv = rospy.Service('LiftingMotorService', LiftMotorSrv, self.SververCallbackBlock)
+        # Topic command interface (parallels the service) for ERRobotHW integration:
+        # ERRobotHW publishes dual_arm_msgs/Lift_Height (height in mm, speed in mm/s);
+        # _topic_command_cb translates it into the same internal request the service handler uses.
+        self.lift_height_cmd_sub = rospy.Subscriber('lift_height_cmd', Lift_Height, self._topic_command_cb, queue_size=1)
+        # Joint state publisher — torso_lift_joint position in metres, derived from backHeight (mm).
+        self.joint_state_pub = rospy.Publisher('joint_states', JointState, queue_size=1)
         self.init_interrupt_requested = False
         self.init_interrupt_srv = rospy.Service('LiftingInitializationInterrupt', LiftIntializationInterrupt, self.InterruptServiceCallBack)
         self.first_up_flag = False
@@ -85,6 +93,17 @@ class C_ROS_Server:
         self.callLock = self.last_callLock = True
         self.timeoutFlag:bool = False
         self.print_flag_init = True
+
+    def _topic_command_cb(self, msg):
+        """Translate a Lift_Height topic command into the internal service handler.
+
+        Lift_Height.height is already in mm (uint16); mode=0 = absolute position,
+        matching how torso_head_controller.py (old architecture) drove the service.
+        """
+        request = LiftMotorSrvRequest()
+        request.val = int(msg.height)
+        request.mode = 0
+        self.SververCallbackBlock(request)
 
     def InterruptServiceCallBack(self,req):
         self.init_interrupt_requested = True
@@ -199,6 +218,13 @@ class C_ROS_Server:
         try:
             self.motor_pub.publish(self.motor_msgs)
             self.init_state_pub.publish(self.init_state_msg)
+            js = JointState()
+            js.header.stamp = rospy.Time.now()
+            js.name = ['torso_lift_joint']
+            js.position = [self.motor_msgs.backHeight / 1000.0]
+            js.velocity = [0.0]
+            js.effort = [0.0]
+            self.joint_state_pub.publish(js)
         except Exception as e:
             print("发布失败",e)
             pass
