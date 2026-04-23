@@ -193,6 +193,10 @@ class C_LiftingMotorCtrl_850pro():
         return self.pos_offset
     def GetMotorMaxSpd(self):
         return self.motorSpd
+    def GetUpLimitVal(self):
+        return self.__upLimitVal
+    def GetDownLimitVal(self):
+        return self.__downLimitVal
     def GetOverflowILimit(self):
         return self.__current_limit
     def JudgeCurrentMotorPort(self, ignore_port:str=None):
