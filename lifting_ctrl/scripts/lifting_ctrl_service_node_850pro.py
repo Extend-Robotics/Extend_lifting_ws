@@ -115,6 +115,13 @@ class C_ROS_Server:
             raise ValueError("LiftHeightCmd.speed must be > 0 mm/s (got 0); "
                              "the 850pro service cannot drive to a height at zero speed")
 
+        if msg.height > self.ctrl.GetUpLimitVal():
+            rospy.logwarn("LiftHeightCmd.height %d mm exceeds upper limit %d mm; will be clamped",
+                          msg.height, self.ctrl.GetUpLimitVal())
+        elif msg.height < self.ctrl.GetDownLimitVal():
+            rospy.logwarn("LiftHeightCmd.height %d mm below lower limit %d mm; will be clamped",
+                          msg.height, self.ctrl.GetDownLimitVal())
+
         if msg.speed != self._last_commanded_speed_mm_s:
             set_max_speed_request = LiftMotorSrvRequest()
             set_max_speed_request.val = int(msg.speed)
@@ -231,8 +238,15 @@ class C_ROS_Server:
             self.motor_msgs.upLimit = (self.motor_states.upLimit)
             # 电机下限位
             self.motor_msgs.downLimit = (self.motor_states.downLimit)
+            joint_state_msg = JointState()
+            joint_state_msg.header.stamp = rospy.Time.now()
+            joint_state_msg.name = ['torso_lift_joint']
+            joint_state_msg.position = [self.motor_msgs.backHeight / 1000.0]
+            joint_state_msg.velocity = [0.0]
+            joint_state_msg.effort = [0.0]
+            self.joint_state_pub.publish(joint_state_msg)
         # 电机是否到达了目标位置，误差小于1认为到达了
-        if(abs(self.target_height - self.back_height) < 1): 
+        if(abs(self.target_height - self.back_height) < 1):
             self.motor_msgs.reachTargetPos = True
         else: self.motor_msgs.reachTargetPos = False
 
@@ -241,13 +255,6 @@ class C_ROS_Server:
         try:
             self.motor_pub.publish(self.motor_msgs)
             self.init_state_pub.publish(self.init_state_msg)
-            js = JointState()
-            js.header.stamp = rospy.Time.now()
-            js.name = ['torso_lift_joint']
-            js.position = [self.motor_msgs.backHeight / 1000.0]
-            js.velocity = [0.0]
-            js.effort = [0.0]
-            self.joint_state_pub.publish(js)
         except Exception as e:
             print("发布失败",e)
             pass
