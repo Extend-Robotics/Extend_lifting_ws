@@ -73,9 +73,15 @@ class C_ROS_Server:
         self.motor_pub = rospy.Publisher('LiftMotorStatePub', LiftMotorMsg, queue_size=1)
         self.init_state_pub = rospy.Publisher('LiftMotorInitState', Bool, queue_size=0)
         self.motor_srv = rospy.Service('LiftingMotorService', LiftMotorSrv, self.SververCallbackBlock)
+        # Cache of the last successfully-commanded max speed (mm/s); used to skip
+        # redundant mode=-5 service calls when ERRobotHW re-publishes at its update
+        # rate with the same speed. Initialised to None so the first command always
+        # sets the speed on the hardware.
+        self._last_commanded_speed_mm_s = None
         # Topic command interface (parallels the service) for ERRobotHW integration:
-        # ERRobotHW publishes bt_task_msgs/LiftHeightCmd (height in mm, speed as 1-100 percent);
-        # _topic_command_cb translates it into the same internal request the service handler uses.
+        # ERRobotHW publishes bt_task_msgs/LiftHeightCmd (height in mm, speed in mm/s);
+        # _topic_command_cb issues two service calls: mode=-5 sets max speed (only
+        # when changed), mode=0 drives to height.
         self.lift_height_cmd_sub = rospy.Subscriber('lift_height_cmd', LiftHeightCmd, self._topic_command_cb, queue_size=1)
         # Joint state publisher — torso_lift_joint position in metres, derived from backHeight (mm).
         self.joint_state_pub = rospy.Publisher('joint_states', JointState, queue_size=1)
@@ -95,15 +101,32 @@ class C_ROS_Server:
         self.print_flag_init = True
 
     def _topic_command_cb(self, msg):
-        """Translate a LiftHeightCmd topic command into the internal service handler.
+        """Translate a LiftHeightCmd topic command into up to two internal service calls.
 
-        LiftHeightCmd.height is already in mm (uint16); mode=0 = absolute position,
-        matching how torso_head_controller.py (old architecture) drove the service.
+        LiftHeightCmd speaks the driver's native units (height mm, speed mm/s),
+        so no unit conversion is needed. The service's single (val, mode) interface
+        is moded: mode=-5 sets max speed, mode=0 drives to absolute height. The
+        mode=-5 call is skipped when the commanded speed is unchanged from the
+        previous successful command, so the common case (ERRobotHW re-publishing
+        at controller rate with constant speed) costs one serial write per cycle
+        instead of two.
         """
-        request = LiftMotorSrvRequest()
-        request.val = int(msg.height)
-        request.mode = 0
-        self.SververCallbackBlock(request)
+        if msg.speed == 0:
+            raise ValueError("LiftHeightCmd.speed must be > 0 mm/s (got 0); "
+                             "the 850pro service cannot drive to a height at zero speed")
+
+        if msg.speed != self._last_commanded_speed_mm_s:
+            set_max_speed_request = LiftMotorSrvRequest()
+            set_max_speed_request.val = int(msg.speed)
+            set_max_speed_request.mode = -5
+            set_max_speed_response = self.SververCallbackBlock(set_max_speed_request)
+            if set_max_speed_response.state == 1:
+                self._last_commanded_speed_mm_s = msg.speed
+
+        set_height_request = LiftMotorSrvRequest()
+        set_height_request.val = int(msg.height)
+        set_height_request.mode = 0
+        self.SververCallbackBlock(set_height_request)
 
     def InterruptServiceCallBack(self,req):
         self.init_interrupt_requested = True
