@@ -13,7 +13,7 @@ from bt_task_msgs.srv  import LiftMotorSrv, LiftMotorSrvRequest, LiftMotorSrvRes
 from bt_task_msgs.msg import LiftMotorMsg
 
 from std_msgs.msg import Bool
-from dual_arm_msgs.msg import Lift_Height
+from bt_task_msgs.msg import LiftHeightCmd
 from sensor_msgs.msg import JointState
 
 class C_ROS_Server:
@@ -74,9 +74,9 @@ class C_ROS_Server:
         self.init_state_pub = rospy.Publisher('LiftMotorInitState', Bool, queue_size=0)
         self.motor_srv = rospy.Service('LiftingMotorService', LiftMotorSrv, self.SververCallbackBlock)
         # Topic command interface (parallels the service) for ERRobotHW integration:
-        # ERRobotHW publishes dual_arm_msgs/Lift_Height (height in mm, speed in mm/s);
+        # ERRobotHW publishes bt_task_msgs/LiftHeightCmd (height in mm, speed as 1-100 percent);
         # _topic_command_cb translates it into the same internal request the service handler uses.
-        self.lift_height_cmd_sub = rospy.Subscriber('lift_height_cmd', Lift_Height, self._topic_command_cb, queue_size=1)
+        self.lift_height_cmd_sub = rospy.Subscriber('lift_height_cmd', LiftHeightCmd, self._topic_command_cb, queue_size=1)
         # Joint state publisher — torso_lift_joint position in metres, derived from backHeight (mm).
         self.joint_state_pub = rospy.Publisher('joint_states', JointState, queue_size=1)
         self.init_interrupt_requested = False
@@ -95,9 +95,9 @@ class C_ROS_Server:
         self.print_flag_init = True
 
     def _topic_command_cb(self, msg):
-        """Translate a Lift_Height topic command into the internal service handler.
+        """Translate a LiftHeightCmd topic command into the internal service handler.
 
-        Lift_Height.height is already in mm (uint16); mode=0 = absolute position,
+        LiftHeightCmd.height is already in mm (uint16); mode=0 = absolute position,
         matching how torso_head_controller.py (old architecture) drove the service.
         """
         request = LiftMotorSrvRequest()
