@@ -4,6 +4,7 @@
 # 开了一个线程用来pub数据
 import rospy
 import _thread
+import threading
 import time
 
 from lifting_motor_ctrl_850pro import C_LiftingMotorCtrl_850pro
@@ -99,6 +100,10 @@ class C_ROS_Server:
         self.callLock = self.last_callLock = True
         self.timeoutFlag:bool = False
         self.print_flag_init = True
+        # RLock (not Lock) because _topic_command_cb holds the lock across both of
+        # its SververCallbackBlock calls to make the (speed, height) pair atomic
+        # against concurrent direct service callers.
+        self._service_lock = threading.RLock()
 
     def _topic_command_cb(self, msg):
         """Translate a LiftHeightCmd topic command into up to two internal service calls.
@@ -115,25 +120,24 @@ class C_ROS_Server:
             raise ValueError("LiftHeightCmd.speed must be > 0 mm/s (got 0); "
                              "the 850pro service cannot drive to a height at zero speed")
 
-        if msg.height > self.ctrl.GetUpLimitVal():
-            rospy.logwarn("LiftHeightCmd.height %d mm exceeds upper limit %d mm; will be clamped",
-                          msg.height, self.ctrl.GetUpLimitVal())
-        elif msg.height < self.ctrl.GetDownLimitVal():
-            rospy.logwarn("LiftHeightCmd.height %d mm below lower limit %d mm; will be clamped",
-                          msg.height, self.ctrl.GetDownLimitVal())
+        with self._service_lock:
+            if msg.height > self.ctrl.GetUpLimitVal():
+                rospy.logwarn("LiftHeightCmd.height %d mm exceeds upper limit %d mm; will be clamped",
+                              msg.height, self.ctrl.GetUpLimitVal())
+            elif msg.height < self.ctrl.GetDownLimitVal():
+                rospy.logwarn("LiftHeightCmd.height %d mm below lower limit %d mm; will be clamped",
+                              msg.height, self.ctrl.GetDownLimitVal())
 
-        if msg.speed != self._last_commanded_speed_mm_s:
-            set_max_speed_request = LiftMotorSrvRequest()
-            set_max_speed_request.val = int(msg.speed)
-            set_max_speed_request.mode = -5
-            set_max_speed_response = self.SververCallbackBlock(set_max_speed_request)
-            if set_max_speed_response.state == 1:
-                self._last_commanded_speed_mm_s = msg.speed
+            if msg.speed != self._last_commanded_speed_mm_s:
+                set_max_speed_request = LiftMotorSrvRequest()
+                set_max_speed_request.val = int(msg.speed)
+                set_max_speed_request.mode = -5
+                self.SververCallbackBlock(set_max_speed_request)
 
-        set_height_request = LiftMotorSrvRequest()
-        set_height_request.val = int(msg.height)
-        set_height_request.mode = 0
-        self.SververCallbackBlock(set_height_request)
+            set_height_request = LiftMotorSrvRequest()
+            set_height_request.val = int(msg.height)
+            set_height_request.mode = 0
+            self.SververCallbackBlock(set_height_request)
 
     def InterruptServiceCallBack(self,req):
         self.init_interrupt_requested = True
@@ -287,7 +291,11 @@ class C_ROS_Server:
             return 0 
         else: return 2
 
-    def SververCallbackBlock(self,req):
+    def SververCallbackBlock(self, req):
+        with self._service_lock:
+            return self._SververCallbackBlockLocked(req)
+
+    def _SververCallbackBlockLocked(self,req):
         '''
         服务端回调函数，阻塞式，等待电机到达目标位置才会反馈
         '''
@@ -356,6 +364,7 @@ class C_ROS_Server:
                     if(self.target_speed < -self.liftTargetSpd): self.target_speed=-self.liftTargetSpd
                     self.target_speed = round((self.target_speed * self.ctrl.reductionRatio * 60)/10000)
                     self.ctrl.MotorSetMaxSpd(self.target_speed)
+                    self._last_commanded_speed_mm_s = req.val
                     resp = 1
                 elif(req.mode == -6):
                     if(self.target_speed ==0 ):
